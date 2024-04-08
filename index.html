@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>the budget grocery list</title>
+    <style>
+      .add_item_button {
+        /* all: unset; */
+        background-color: transparent;
+        padding: -30px 1px -30px 1px;
+        font-size: 72px;
+        border-radius: 9999px;
+        border-width: 1px;
+        border-color: black;
+        transition: all;
+        transition-duration: 300ms;
+      }
+
+      .add_item_button:hover {
+        cursor: pointer;
+        background-color: darkgray;
+      }
+
+      .add_store_button {
+        all: unset;
+        text-decoration: underline;
+        position: absolute;
+        bottom: 20px;
+      }
+
+      .add_store_button:hover {
+        cursor: pointer;
+        color: gray;
+      }
+    </style>
+    <!-- Firebase
+    <script
+      type="module"
+      src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js"
+    ></script>
+    <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css"
+    /> -->
+  </head>
+  <body>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+
+      // If you enabled Analytics in your project, add the Firebase SDK for Google Analytics
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-analytics.js";
+
+      // Add Firebase products that you want to use
+      import {
+        getAuth,
+        signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        doc,
+        setDoc,
+        getDoc,
+        updateDoc,
+      } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAMsq7m1o4bxnO-083DGbURnxzSqR-PotY",
+        authDomain: "alberts-grocery.firebaseapp.com",
+        projectId: "alberts-grocery",
+        storageBucket: "alberts-grocery.appspot.com",
+        messagingSenderId: "356951036697",
+        appId: "1:356951036697:web:b6a084cfd8553b3a742b88",
+      };
+
+      const app = window.app ?? initializeApp(firebaseConfig);
+      const auth = window.auth ?? getAuth(app);
+      const db = window.db ?? getFirestore(app);
+      window.app ??= app;
+      window.auth ??= auth;
+      window.db ??= db;
+      window.register ??= createUserWithEmailAndPassword;
+      window.login ??= signInWithEmailAndPassword;
+      window.signout ??= signOut;
+      window.firestore ??= {
+        getFirestore,
+        collection,
+        doc,
+        setDoc,
+        getDoc,
+        updateDoc,
+      };
+
+      // set the auth event listener
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // const uid = user.uid;
+          window.user = user;
+          console.log("user", user);
+          ShowStores();
+        } else {
+          window.user = null;
+          console.log("user is not signed in");
+        }
+        checkAuth();
+      });
+    </script>
+    <script>
+      function checkAuth() {
+        if (window.user) {
+          document.getElementById("user_info_email").textContent =
+            window.user.email;
+          document.getElementById("auth_div").hidden = true;
+          document.getElementById("user_info_div").hidden = false;
+        } else {
+          document.getElementById("auth_div").hidden = false;
+          document.getElementById("user_info_div").hidden = true;
+        }
+        // const authToken = localStorage.getItem("authToken");
+        // console.log("authToken", authToken);
+        // const auth = window.auth;
+        // const tokenLogin = window.tokenlogin;
+        // tokenLogin(auth, authToken)
+        //   .then((userCredential) => {
+        //     const user = userCredential.user;
+        //     document.getElementById("auth_div").hidden = true;
+        //     document.getElementById("user_info_div").hidden = false;
+        //   })
+        //   .catch((error) => {
+        //     const errorCode = error.code;
+        //     const errorMessage = error.message;
+        //     localStorage.removeItem("authToken");
+        //     document.getElementById("auth_div").hidden = false;
+        //     document.getElementById("user_info_div").hidden = true;
+        //   });
+      }
+
+      // On first load, check if authenticated, and if so, then parse the login state
+      document.addEventListener("DOMContentLoaded", (event) => {
+        checkAuth();
+      });
+
+      function Register() {
+        const auth = window.auth;
+        const register = window.register;
+        const email = document.getElementById("email_input").value;
+        const password = document.getElementById("password_input").value;
+        register(auth, email, password)
+          .then((userCredential) => {
+            const user = userCredential.user;
+            console.log("registered as user", user);
+          })
+          .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            console.log(errorCode, errorMessage);
+          });
+      }
+
+      function Login() {
+        const auth = window.auth;
+        const login = window.login;
+        const email = document.getElementById("email_input").value;
+        const password = document.getElementById("password_input").value;
+
+        login(auth, email, password)
+          .then((userCredential) => {
+            const user = userCredential.user;
+            localStorage.setItem("authToken", user.accessToken);
+            console.log("signed in as user", user);
+            checkAuth();
+          })
+          .catch((error) => {
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            console.log(errorCode, errorMessage);
+          });
+      }
+
+      function SignOut() {
+        const auth = window.auth;
+        const signOut = window.signout;
+        signOut(auth)
+          .then(() => {
+            console.log("signout successful");
+          })
+          .catch((error) => {
+            console.log(
+              "an error occurred while signing out",
+              error.errorMessage
+            );
+          });
+      }
+
+      async function getStores() {
+        // return Object.keys(localStorage)
+        //   .filter((x) => x !== "authToken")
+        //   .sort();
+        const { doc, getDoc, setDoc, updateDoc } = window.firestore;
+        const docRef = doc(db, "lists", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          // console.log("getStores data", data);
+          return Object.keys(data);
+        }
+      }
+
+      async function getItems(store) {
+        const { doc, getDoc } = window.firestore;
+        const docRef = doc(db, "lists", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          return Object.entries(data[store]).sort();
+        }
+      }
+
+      async function ShowStores() {
+        const storeNames = await getStores();
+        if (!storeNames || storeNames.length === 0) {
+          return;
+        }
+        console.log("storeNames", storeNames);
+        document.getElementById("store_list").textContent = "";
+        document.getElementById("select_store").textContent = "";
+        storeNames.forEach(async (name) => {
+          const storeListElem = document.getElementById("store_list");
+          const storeSelectElem = document.getElementById("select_store");
+          const storeNode = document.createElement("li");
+          const storeNameNode = document.createElement("h3");
+          storeNameNode.textContent = name;
+          storeNode.appendChild(storeNameNode);
+
+          const items = await getItems(name);
+          // console.log(name, localStorage.getItem(name), items);
+          items.forEach((item) => {
+            const itemNode = document.createElement("p");
+            const checkBoxNode = document.createElement("input");
+            checkBoxNode.setAttribute("type", "checkbox");
+            checkBoxNode.type = "checkbox";
+            console.log("item", item);
+            itemNode.textContent = item[0];
+            checkBoxNode.checked = item[1].checked;
+            checkBoxNode.addEventListener("change", async (event) => {
+              const checked = event.currentTarget.checked;
+              console.log("checked", checked);
+              // console.log("checkbox event", event);
+              const { doc, getDoc, updateDoc } = window.firestore;
+              const docRef = doc(db, "lists", user.uid);
+              const docSnap = await getDoc(docRef);
+              if (!docSnap.exists()) {
+                return;
+              }
+              const data = docSnap.data();
+              data[name][item[0]].checked = checked;
+              await updateDoc(docRef, data);
+              // if (event.currentTarget.checked) {
+              // } else {
+              // }
+            });
+            itemNode.appendChild(checkBoxNode);
+            storeNode.appendChild(itemNode);
+          });
+
+          const optionNode = document.createElement("option");
+          optionNode.value = name;
+          optionNode.textContent = name;
+          storeSelectElem.appendChild(optionNode);
+
+          // console.log("name", name);
+          storeListElem.appendChild(storeNode);
+        });
+      }
+
+      async function CreateStore() {
+        const db = window.db;
+        const user = window.user;
+        const newStoreName = document.getElementById("new_store_name");
+        // console.log(newStoreName.value);
+
+        const { doc, getDoc, setDoc, updateDoc } = window.firestore;
+
+        const docRef = doc(db, "lists", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          console.log("User exists in database, adding store...");
+          const opts = {};
+          opts[newStoreName.value] = {};
+          const docData = docSnap.data();
+          if (!docData[newStoreName.value]) {
+            await updateDoc(docRef, opts);
+          }
+        } else {
+          console.log("No such user!");
+          const opts = {};
+          opts[newStoreName.value] = {};
+          await setDoc(docRef, {});
+          await updateDoc(docRef, opts);
+        }
+
+        if (localStorage.getItem(newStoreName.value) !== null) {
+          alert("store with that name already exists.");
+        } else {
+          console.log("new store name " + newStoreName.value);
+          localStorage.setItem(newStoreName.value, JSON.stringify({}));
+          alert("created store!");
+        }
+        document.getElementById("new_store_name").value = "";
+        document.getElementById("add_store_dialog").close();
+        ShowStores();
+      }
+
+      async function AddItem() {
+        const db = window.db;
+        const user = window.user;
+        const newItemName = document.getElementById("new_item_name");
+        const storeName = document.getElementById("select_store").value;
+        const { doc, getDoc, setDoc, updateDoc } = window.firestore;
+
+        const docRef = doc(db, "lists", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          alert("User does not have any stores, aborting...");
+          return;
+        }
+
+        const docData = docSnap.data();
+        docData[storeName][newItemName.value] = {
+          description: document.getElementById("new_item_description").value,
+          checked: false,
+        };
+
+        await updateDoc(docRef, docData);
+
+        const store = JSON.parse(
+          localStorage.getItem(document.getElementById("select_store").value)
+        );
+
+        store[newItemName.value] = {
+          description: document.getElementById("new_item_description").value,
+          checked: false,
+        };
+
+        // console.log("store", store);
+
+        // console.log(
+        //   "store",
+        //   localStorage.getItem("justin")
+        //   // document.getElementById("select_store").value,
+        //   // "store1",
+        //   // store,
+        //   // JSON.stringify(store)
+        // );
+
+        localStorage.setItem(
+          document.getElementById("select_store").value,
+          JSON.stringify(store)
+        );
+
+        document.getElementById("new_item_name").value = "";
+        document.getElementById("new_item_description").value = "";
+        document.getElementById("add_item_dialog").close();
+        ShowStores();
+      }
+    </script>
+    <h1>Grocery list</h1>
+    <div id="auth_div">
+      <label for="email_input">
+        Email:
+        <input id="email_input" />
+      </label>
+      <label for="password_input">
+        Password:
+        <input type="password" id="password_input" />
+      </label>
+      <button onclick="Login()">Login</button>
+      <button onclick="Register()">Register</button>
+    </div>
+    <div hidden id="user_info_div">
+      <p>Logged in as: <span id="user_info_email"></span></p>
+      <button onclick="SignOut();">Sign Out</button>
+    </div>
+    <hr />
+
+    <!-- Dialog for adding stores -->
+    <dialog id="add_store_dialog">
+      <h1 style="font-size: large">Add store</h1>
+      <hr />
+      <label for="new_store_name">
+        Name:
+        <input id="new_store_name" name="New Store Name" />
+      </label>
+      <br />
+      <button onclick="CreateStore()">Create Store</button>
+      <form method="dialog">
+        <button onclick="document.getElementById('new_store_name').value = ''">
+          Cancel
+        </button>
+      </form>
+    </dialog>
+
+    <!-- Dialog for adding items -->
+    <dialog id="add_item_dialog">
+      <h1 style="font-size: large">Add item</h1>
+      <hr />
+      <label for="new_item_name">
+        Name:
+        <input id="new_item_name" name="New Item Name" />
+      </label>
+      <br />
+      <label for="new_item_description">
+        Description:
+        <input id="new_item_description" name="New Item Description" />
+      </label>
+      <select name="stores" id="select_store"></select>
+      <button onclick="AddItem()">Add Item</button>
+      <form method="dialog">
+        <button
+          onclick="document.getElementById('new_item_name').value = '';document.getElementById('new_item_description').value = '';"
+        >
+          Cancel
+        </button>
+      </form>
+    </dialog>
+
+    <!-- main page of lists -->
+    <main style="width: 100vw">
+      <h2 style="text-decoration: underline">stores</h2>
+      <ul id="store_list"></ul>
+    </main>
+
+    <!-- buttons to add stores and add items -->
+    <button
+      onclick="document.getElementById('add_store_dialog').showModal()"
+      class="add_store_button"
+    >
+      Add store
+    </button>
+    <button
+      onclick="ShowStores();document.getElementById('add_item_dialog').showModal()"
+      class="add_item_button"
+      style="
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin-left: auto;
+        margin-right: auto;
+        width: 60px;
+      "
+    >
+      +
+    </button>
+  </body>
+</html>
